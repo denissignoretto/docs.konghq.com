@@ -1,8 +1,8 @@
-[![Netlify Status](https://api.netlify.com/api/v1/badges/ae60f2a4-488e-4771-b24a-c26badc5f45d/deploy-status)](https://app.netlify.com/sites/kongdocs/deploys)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/a4e2b987-f4f2-4512-a8fa-fd954a0126f8/deploy-status)](https://app.netlify.com/sites/kongdocs/deploys)
 [![](https://img.shields.io/github/license/kong/docs.konghq.com)](https://github.com/Kong/docs.konghq.com/blob/main/LICENSE)
 [![](https://img.shields.io/github/contributors/kong/docs.konghq.com)]()
 
-# KONG's Documentation Website
+# Kong's Documentation Website
 
 This repository contains the source content and code for [Kong](https://github.com/Kong/kong)'s documentation website. It's built using [Jekyll](https://jekyllrb.com/) and deployed with [Netlify](https://www.netlify.com/).
 
@@ -18,7 +18,7 @@ Here are some things to know before you get started:
     * [OSS upgrade guide](https://docs.konghq.com/gateway/latest/install-and-run/upgrading-oss/)
     * [PDK reference](https://docs.konghq.com/gateway/latest/pdk)
 
-All pull requests for these docs should be opened on the [Kong/kong](https://github.com/Kong/kong) repository. Fork the repository and submit PRs from your fork.
+All pull requests for these docs should be opened in the [Kong/kong](https://github.com/Kong/kong) repository. Fork the repository and submit PRs from your fork.
 
 For [Gateway Enterprise configuration reference](https://docs.konghq.com/gateway/latest/reference/configuration), open an issue on this repo and we'll update the docs.
 
@@ -26,63 +26,19 @@ For [Gateway Enterprise configuration reference](https://docs.konghq.com/gateway
 
 * We are currently accepting plugin submissions to our plugin hub from trusted technical partners, on a limited basis. For more information, see the [Kong Partners page](https://konghq.com/partners/).
 
-## Run local project
-***
+## Run Locally
 
-For anything other than minor changes, clone the repository onto your local machine and build locally.
-
-## Run locally with gulp
-***
-
-### Prerequisites
-
-* [gulp](https://gulpjs.com/docs/en/getting-started/quick-start/) installed globally
-
-Install dependencies:
+For anything other than minor changes, [clone the repository onto your local machine and build locally](docs/platform-install.md). Once you've installed all of the tools required, you can use our `Makefile` to build the docs:
 
 ```bash
+# Install dependencies
 make install
-```
 
-Run the project:
-
-```bash
+# Build the site and watch for changes 
 make run
 ```
 
-If you have issues, run:
-
-```bash
-make clean
-```
-
-## Run locally with npm
-***
-
-### Prerequisites
-
-* [node and npm](https://www.npmjs.com/get-npm)
-* [yarn](https://classic.yarnpkg.com)
-* [gulp](https://gulpjs.com/docs/en/getting-started/quick-start/)
-* [Bundler](https://bundler.io/) (< 2.0.0)
-* [Ruby](https://www.ruby-lang.org) (> 2.6)
-* [Python](https://www.python.org) (>= 2.7.X, < 3)
-
-Install dependencies:
-
-```bash
-gem install bundler
-npm install
-```
-
-Run the project:
-
-```bash
-npm start
-```
-
 ## Plugin contributors
-***
 
 If you have contributed a plugin, you can add a Kong badge to your plugin README.
 
@@ -97,7 +53,6 @@ Here's how the badge looks: [![](https://img.shields.io/badge/Kong-test-blue.svg
 See [Issue #908](https://github.com/Kong/docs.konghq.com/issues/908) for more information. Note that we're not currently hosting assets for badges.
 
 ## Generate the PDK, Admin API, CLI, and Configuration documentation
-***
 
 > This section is for Kong source code maintainers. You don't need to do anything here if you're contributing to this repo!
 
@@ -124,7 +79,7 @@ After everything is generated, review, open a branch with the changes, send a
 pull request, and review the changes.
 
 You usually want to open a PR against a `release/*` branch. For example, in the
-example above the branch was `release/2.4`.
+example above, the branch was `release/2.4`.
 
 ```bash
 cd docs.konghq.com
@@ -144,7 +99,7 @@ Tests for this site are written using `playwright` and `expect.js`
 
 To run the tests, you must first build the site by running `make build` before running `make smoke`.
 
-Many of the tests are smoke tests to check issues that occurred while adding caching to the site, such as ensuring that the side navigation isn't cached.
+Many of the tests are smoke tests to check for issues that occurred while adding caching to the site, such as ensuring that the side navigation isn't cached.
 
 To add your own tests, look in the `tests` directory and use `home.test.js` as a sample. You specify which URL to visit and then a CSS selector to search for, before asserting that the contents match what you expect.
 
@@ -162,7 +117,7 @@ We run various quality checks at build time to ensure that the documentation is 
 
 Some of the checks can be manually marked as approved using labels:
 
-* `ci:manual-approve:link-validation` - mark link checking as successful. Useful when Netlify returns a `HTTP 400` error and the links are validated manually
+* `ci:manual-approve:link-validation` - mark link checking as successful. Useful when Netlify returns an `HTTP 400` error and the links are validated manually.
 
 ### include-check
 
@@ -237,7 +192,7 @@ The link checker runs in two different ways:
 1. When a pull request is opened, any changed files are detected and those URLs are checked for broken links. This allows us to fix pages incrementally and ensure that we don't break any new links.
 1. A full site scan, against the latest version of each product only. This allows us to check all pages for broken links. Once all broken links are fixed, we can retire this job in favour of the CI check.
 
-To run a full site scan locally, you'll need the [`netlify` CLI](https://docs.netlify.com/cli/get-started/) installed.
+To run a full site scan locally, you'll need to have the [`netlify` CLI](https://docs.netlify.com/cli/get-started/) installed.
 
 Do **NOT** run the link checker against production.
 

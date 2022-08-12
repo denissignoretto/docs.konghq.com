@@ -5,8 +5,9 @@
 #  the files in https://github.com/Kong/docs.konghq.com/tree/main/autodoc-conf-ee
 #
 title: Configuration Reference for Kong Gateway
+source_url: https://github.com/Kong/kong-ee/blob/master/kong.conf.default
 ---
-
+<!-- vale off -->
 ## Configuration loading
 
 Kong comes with a default configuration file that can be found at
@@ -96,19 +97,30 @@ Nginx directives to this file directly via your Kong configuration.
 
 ### Injecting individual Nginx directives
 
-Any entry added to your `kong.conf` file that is prefixed by `nginx_http_`,
-`nginx_proxy_` or `nginx_admin_` will be converted into an equivalent Nginx
+Any entry added to your `kong.conf` file that is prefixed by the following
+supported namespaces will be converted into an equivalent Nginx
 directive by removing the prefix and added to the appropriate section of the
 Nginx configuration:
 
-- Entries prefixed with `nginx_http_` will be injected to the overall `http`
-block directive.
-
-- Entries prefixed with `nginx_proxy_` will be injected to the `server` block
-directive handling Kong's proxy ports.
-
-- Entries prefixed with `nginx_admin_` will be injected to the `server` block
-directive handling Kong's Admin API ports.
+- `nginx_main_<directive>`: Injects `<directive>` in Kong's configuration
+   `main` context.
+- `nginx_events_<directive>`: Injects `<directive>` in Kong's `events {}`
+    block.
+- `nginx_http_<directive>`: Injects `<directive>` in Kong's `http {}` block.
+- `nginx_proxy_<directive>`: Injects `<directive>` in Kong's proxy
+   `server {}` block.
+- `nginx_upstream_<directive>`: Injects `<directive>` in Kong's proxy
+   `upstream {}` block.
+- `nginx_admin_<directive>`: Injects `<directive>` in Kong's Admin API
+   `server {}` block.
+- `nginx_status_<directive>`: Injects `<directive>` in Kong's Status API
+   `server {}` block  (only effective if `status_listen` is enabled).
+- `nginx_stream_<directive>`: Injects `<directive>` in Kong's stream module
+   `stream {}` block (only effective if `stream_listen` is enabled).
+- `nginx_sproxy_<directive>`: Injects `<directive>` in Kong's stream module
+   `server {}` block (only effective if `stream_listen` is enabled).
+- `nginx_supstream_<directive>`: Injects `<directive>` in Kong's stream
+   module `upstream {}` block.
 
 For example, if you add the following line to your `kong.conf` file:
 
@@ -138,13 +150,27 @@ block:
 output_buffers 4 64k;
 ```
 
+If you want to add the same directive multiple times, you can specify it like the following example:
+
+```bash
+export "KONG_NGINX_MAIN_ENV=HTTP_SSO_ENDPOINT;env PROXY_SSO_ENDPOINT"
+export HTTP_SSO_ENDPOINT=http://example.com
+export PROXY_SSO_ENDPOINT=http://example.com
+```
+
+This results in Kong injecting this line:
+
+```
+env HTTP_SSO_ENDPOINT;env PROXY_SSO_ENDPOINT;
+```
+
 As always, be mindful of your shell's quoting rules specifying values
 containing spaces.
 
 For more details on the Nginx configuration file structure and block
-directives, see https://nginx.org/en/docs/beginners_guide.html#conf_structure.
+directives, see the [Nginx reference](https://nginx.org/en/docs/beginners_guide.html#conf_structure).
 
-For a list of Nginx directives, see https://nginx.org/en/docs/dirindex.html.
+For a list of Nginx directives, see the [Nginx directives index](https://nginx.org/en/docs/dirindex.html).
 Note however that some directives are dependent of specific Nginx modules,
 some of which may not be included with the official builds of Kong.
 
@@ -225,6 +251,12 @@ which must specify an Nginx configuration template. Such a template uses the
 the given Kong configuration, before being dumped in your Kong prefix
 directory, moments before starting Nginx.
 
+The following Lua functions are available in the [templating engine][pl.template]:
+
+- `pairs`, `ipairs`
+- `tostring`
+- `os.getenv`
+
 The default template for
 Kong Gateway can be found by entering the following command on the system
 running your Kong instance: `find / -type d -name "templates" | grep kong`. For
@@ -233,7 +265,7 @@ open-source Kong Gateway, you can also see the
 
 The template is split in two
 Nginx configuration files: `nginx.lua` and `nginx_kong.lua`. The former is
-minimalistic and includes the latter, which contains everything Kong requires
+minimal and includes the latter, which contains everything Kong requires
 to run. When `kong start` runs, right before starting Nginx, it copies these
 two files into the prefix directory, which looks like so:
 
@@ -493,13 +525,12 @@ adjusted by the `log_level` property.
 
 #### vaults
 
-Comma-separated list of vaults this node should load. By default, no vaults are
-enabled.
+Comma-separated list of vaults this node should load. Vaults are `bundled` by default.
 
 The specified name(s) will be substituted as such in the Lua namespace:
 `kong.vaults.{name}.*`.
 
-**Default:** `off`
+**Default:** `bundled`
 
 ---
 
@@ -694,7 +725,7 @@ The list of Common Names that are allowed to connect to the control plane.
 Multiple entries may be supplied in a comma-separated string. When not
 set, only data planes with the same parent domain as the
 control plane cert are allowed to connect.
-  
+
 This field is ignored if `cluster_mtls` is not set to `pki_check_cn`.
 
 **Default:** none
@@ -733,6 +764,15 @@ which configuration updates will be fetched, in `host:port` format.
 
 To be used by data plane nodes only: telemetry address of the control plane
 node to which telemetry updates will be posted in `host:port` format.
+
+**Default:** none
+
+---
+
+#### cluster_telemetry_server_name
+{:.badge .enterprise}
+
+The SNI (Server Name Indication extension) to use for Vitals telemetry data.
 
 **Default:** none
 
@@ -2670,7 +2710,6 @@ Examples:
 
 - `<IP>:<PORT>` -> `portal_gui_host = 127.0.0.1:8003`
 - `<HOSTNAME>` -> `portal_gui_host = portal_api.domain.tld`
-- `<HOSTNAME>/<PATH>` -> `portal_gui_host = dev-machine/dev-285`
 
 **Default:** `127.0.0.1:8003`
 
@@ -3034,9 +3073,12 @@ portal_session_conf = { "cookie_name": "portal_session", \
 
 Developer Portal Auto Approve Access
 
-When this flag is set to `on`, a developer will automatically be marked as
-"approved" after completing registration. Access can still be revoked through
-the Admin GUI or API.
+When set to `on`, a developer will automatically be marked as "approved" after
+completing registration. Access can still be revoked through Kong Manager or the
+Admin API.
+
+When set to `off`, a Kong admin will have to manually approve the Developer
+using Kong Manager or the Admin API.
 
 **Default:** `off`
 
@@ -3045,8 +3087,8 @@ the Admin GUI or API.
 #### portal_token_exp
 {:.badge .enterprise}
 
-Duration in seconds for the expiration of portal login reset/account validation
-token.
+Duration in seconds for the expiration of the Dev Portal reset password token.
+Default is `21600` (six hours).
 
 **Default:** `21600`
 
@@ -3059,7 +3101,7 @@ Portal Developer Email Verification.
 
 When enabled Developers will receive an email upon registration to verify their
 account. Developers will not be able to use the Developer Portal until they
-verify their account.
+verify their account, even if auto-approve is enabled.
 
 Note: SMTP must be turned on in order to use this feature.
 
@@ -3078,7 +3120,20 @@ particular workspace.
 #### portal_invite_email
 {:.badge .enterprise}
 
-Enable or disable portal_invite_email
+When enabled, Kong admins can invite developers to a Dev Portal by using the
+Invite button in Kong Manager.
+
+The email looks like the following:
+
+```
+Subject: Invite to access Dev Portal <WORKSPACE_NAME>
+```
+
+Hello Developer!
+
+You have been invited to create a Dev Portal account at %s.
+
+Please visit `<DEV_PORTAL_URL/register>` to create your account.
 
 **Default:** `on`
 
@@ -3087,7 +3142,23 @@ Enable or disable portal_invite_email
 #### portal_access_request_email
 {:.badge .enterprise}
 
-Enable or disable portal_access_request_email
+When enabled, Kong admins specified by `smtp_admin_emails` will receive an
+email when a developer requests access to a Dev Portal.
+
+When disabled, Kong admins will have to manually check the Kong Manager to view
+any requests.
+
+The email looks like the following:
+
+```
+Subject: Request to access Dev Portal <WORKSPACE NAME>
+```
+
+Hello Admin!
+
+`<DEVELOPER NAME>` has requested Dev Portal access for `<WORKSPACE_NAME>`.
+
+Please visit `<KONG_MANAGER_URL/developers/requested>` to review this request.
 
 **Default:** `on`
 
@@ -3096,7 +3167,22 @@ Enable or disable portal_access_request_email
 #### portal_approved_email
 {:.badge .enterprise}
 
-Enable or disable portal_approved_email
+When enabled, developers will receive an email when access to a Dev Portal has
+been approved.
+
+When disabled, developers will receive no indication that they have
+beenapproved. It is suggested to only disable this feature if
+`portal_auto_approve` is enabled.
+
+The email looks like the following:
+
+```
+Subject: Dev Portal access approved
+```
+
+Hello Developer! You have been approved to access `<WORKSPACE_NAME>`.
+
+Please visit `<DEV PORTAL URL/login>` to login.
 
 **Default:** `on`
 
@@ -3105,7 +3191,29 @@ Enable or disable portal_approved_email
 #### portal_reset_email
 {:.badge .enterprise}
 
-Enable or disable portal_reset_email
+When enabled, developers will be able to use the Reset Password flow on a Dev
+Portal and will receive an email with password reset instructions.
+
+When disabled, developers will *not* be able to reset their account passwords.
+Kong Admins will have to manually create new credentials for the Developer in
+the Kong Manager.
+
+The email looks like the following:
+
+```
+Subject: Password Reset Instructions for Dev Portal `<WORKSPACE_NAME>`.
+```
+
+Hello Developer,
+
+Please click the link below to reset your Dev Portal password.
+
+`<DEV_PORTAL_URL/reset?token=12345>`
+
+This link will expire in `<portal_reset_token_exp>`
+
+If you didn't make this request, keep your account secure by clicking the link
+above to change your password.
 
 **Default:** `on`
 
@@ -3114,16 +3222,96 @@ Enable or disable portal_reset_email
 #### portal_reset_success_email
 {:.badge .enterprise}
 
-Enable or disable portal_reset_success_email
+When enabled, developers will receive an email after successfully resetting
+their Dev Portal account password.
+
+When disabled, developers will still be able to reset their account passwords,
+but will not receive a confirmation email.
+
+The email looks like the following:
+
+```
+Subject: Dev Portal password change success
+```
+
+Hello Developer, We are emailing you to let you know that your Dev Portal
+password at `<DEV_PORTAL_URL>` has been changed.
+
+Click the link below to sign in with your new credentials.
+
+`<DEV_PORTAL_URL>`
 
 **Default:** `on`
+
+---
+
+#### portal_application_status_email
+{:.badge .enterprise}
+
+When enabled, developers will receive an email when the status changes for their
+application service requests.
+
+When disabled, developers will still be able to view the status in their
+developer portal application page.
+
+The email looks like the following:
+
+```
+Subject: Dev Portal application request <REQUEST_STATUS> (<DEV_PORTAL_URL>)
+
+Hello Developer,
+We are emailing you to let you know that your request for application access from the
+Developer Portal account at <DEV_PORTAL_URL> is <REQUEST_STATUS>.
+
+Application: <APPLICATION_NAME>
+Service: <SERVICE_NAME>
+
+You will receive another email when your access has been approved.
+```
+
+**Default:** `off`
+
+---
+
+#### portal_application_request_email
+{:.badge .enterprise}
+
+When enabled, Kong admins specified by `smtp_admin_emails` will receive an
+email when a developer requests access to service through an application.
+
+When disabled, Kong admins will have to manually check the Kong Manager to view
+any requests.
+
+By default, `smtp_admin_emails` will be the recipients. This can be overriden
+by `portal_smtp_admin_emails`, which can be set dynamically per workspace through
+the Admin API.
+
+The email looks like the following:
+
+ ```
+Subject: Request to access Dev Portal (<DEV_PORTAL_URL>) service from <DEVELOPER_EMAIL>
+
+Hello Admin,
+
+<DEVELOPER NAME> (<DEVELOPER_EMAIL>) has requested application access for <DEV_PORTAL_URL>.
+
+Requested workspace: <WORKSPACE_NAME>
+Requested application: <APPLICATION_NAME>
+Requested service: <SERVICE_NAME>
+
+Please visit <KONG_MANAGER_URL/WORKSPACE_NAME/applications/APPLICATION_ID#requested> to review this request.
+
+```
+
+**Default:** `off`
 
 ---
 
 #### portal_emails_from
 {:.badge .enterprise}
 
-The name and email address for the `From` header for portal emails
+The name and email address for the `From` header included in all Dev Portal
+emails.
 
 Example: `portal_emails_from = Your Name <example@example.com>`
 
@@ -3143,6 +3331,19 @@ Example: `portal_emails_reply_to = example@example.com`
 
 Note: Some SMTP servers will not use this value, but instead insert the email
 associated with the account.
+
+**Default:** none
+
+---
+
+#### portal_smtp_admin_emails
+{:.badge .enterprise}
+
+Comma separated list of admin emails to receive portal-related notifications.
+
+If none are set, the values in `smtp_admin_emails` will be used.
+
+Example `admin1@example.com, admin2@example.com`
 
 **Default:** none
 
@@ -3752,7 +3953,6 @@ to escape the sandbox.
 **Default:** none
 
 ---
-
 
 
 [Penlight]: http://stevedonovan.github.io/Penlight/api/index.html

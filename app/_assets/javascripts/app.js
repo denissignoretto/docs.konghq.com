@@ -22,6 +22,7 @@ jQuery(function () {
       },
       700
     );
+    history.pushState({}, '', $(this).attr("href"));
   });
 
   // Active link
@@ -335,16 +336,113 @@ jQuery(function () {
     ); // Adjust scroll speed
   }
 
+
+// Plugin filter all / only available
+var pluginsAllOrOnly = "all";
+var showPlusWithEnterprise = false;
+function showPluginBanner(target){
+  var hubCards = $(".hub-cards");
+  if (!hubCards.length){
+    return;
+  }
+
+  var allOnlyToggle = $('#plugin-banner');
+  var eePlusBanner = $('#ee-plus-banner');
+
+  var allowedFilters = ["plus", "ee-compat"]
+  if (allowedFilters.indexOf(target) === -1){
+    pluginsAllOrOnly = "all";
+    allOnlyToggle.hide();
+    return;
+  }
+
+  allOnlyToggle.show();
+
+  if (!allOnlyToggle.length){
+    allOnlyToggle = $('<div id="plugin-banner" class="content" style="padding:0"><blockquote class="note"></blockquote></div>');
+    hubCards.prepend(allOnlyToggle)
+  }
+
+  if (!eePlusBanner.length){
+    eePlusBanner = $('<div id="ee-plus-banner" class="content" style="padding:0"><blockquote class="important">If you run Kong Gateway on your own infrastructure, you also have access to all <strong>Plus</strong> plugins. <u id="show-plus-ee">Show Plus plugins?</u></blockquote></div>');
+    eePlusBanner.find("u").css({cursor: "pointer"}).click(function(){
+      showPlusWithEnterprise = true;
+      pluginFilter(target);
+      return false;
+    });
+    allOnlyToggle.after(eePlusBanner)
+  }
+
+  eePlusBanner.hide();
+
+  if (pluginsAllOrOnly == "only" && target == "ee-compat" && showPlusWithEnterprise == false){
+    eePlusBanner.show();
+  }
+
+  var tierMap = {
+    "plus": "Plus",
+    "ee-compat": "Enterprise"
+  }
+
+  var content = allOnlyToggle.find("blockquote");
+
+  if (pluginsAllOrOnly == "all"){
+    content.html("Showing <strong>all</strong> plugins available on the " + tierMap[target] + " tier. <u>Show " + tierMap[target] + " only plugins?</u>")
+  } else {
+    content.html("Showing plugins <strong>only</strong> available on the " + tierMap[target] + " tier. <u>Show <strong>all</strong> " + tierMap[target] + " plugins?</u>")
+  }
+  content.find("u").css({"cursor":"pointer"}).click(function(){
+    var other = pluginsAllOrOnly == "all" ? "only" : "all";
+    pluginsAllOrOnly = other;
+    showPlusWithEnterprise = false;
+    pluginFilter(target);
+    return false;
+  });
+
+}
+
+
 // Plugins filter on click
 $("a[data-filter]").on("click", function () {
-  $("html, body").animate({ scrollTop: 0 });
   var target = $(this).data("filter");
-  console.log(this);
 
   // Remove any active classes that may already be applied
   $("a[data-filter]").removeClass("active");
   // Add active class sidebar a
   $(this).addClass("active");
+  pluginFilter(target);
+});
+
+// Plugin filter on keypress
+$("a[data-filter]").on("keypress", function(e) {
+  if (e.keyCode === 13) {
+    var target = $(this).data("filter");
+    $("a[data-filter]").removeClass("active");
+    $(this).addClass("active");
+
+    pluginFilter(target);
+  }
+});
+
+function pluginFilter(target){
+  $("html, body").animate({ scrollTop: 0 });
+  if (!target){
+    target = "all";
+  }
+  showPluginBanner(target)
+
+  var excluded = [];
+  if (pluginsAllOrOnly == "only"){
+    if (target == "plus"){
+      excluded = ["open-source"];
+    } else if (target == "ee-compat"){
+      excluded = ["open-source"];
+      if (!showPlusWithEnterprise){
+        excluded.push("plus");
+      }
+    }
+  }
+
 
   // For all faded cards, replace href with data-href target
   $(".card-group.fadeOut").each(function () {
@@ -355,6 +453,7 @@ $("a[data-filter]").on("click", function () {
 
   // Remove any fade states that may already be applied
   $(".card-group").removeClass("fadeOut");
+  $(".nav-link, .category").show();
 
   // If the target of the li is not all continue
   if (target !== "all") {
@@ -362,6 +461,14 @@ $("a[data-filter]").on("click", function () {
     $(".card-group")
       .not("." + target)
       .addClass("fadeOut");
+
+    // Fade cards that aren't exclusive to this tier if
+    // we're set to "only" mode
+    if (pluginsAllOrOnly == "only"){
+      var selector = excluded.map(e => "." + e).join(", ")
+      $(".card-group").filter(selector).addClass("fadeOut");
+    }
+
     // For each faded card, move href to data-href and remove href
     $(".card-group.fadeOut").each(function () {
       var link = $(this).find("a");
@@ -369,43 +476,18 @@ $("a[data-filter]").on("click", function () {
       link.removeAttr("href");
     });
   }
-});
 
-// Plugin filter on keypress
-$("a[data-filter]").on("keypress", function(e) {
-  if (e.keyCode === 13) {
-    $("html, body").animate({ scrollTop: 0 });
-    var target = $(this).data("filter");
-
-    // Remove any active classes that may already be applied
-    $("a[data-filter]").removeClass("active");
-    // Add active class sidebar a
-    $(this).addClass("active");
-
-    // For all faded cards, replace href with data-href target
-    $(".card-group.fadeOut").each(function () {
-      var link = $(this).find("a");
-      link.attr("href", $(link).attr("data-href"));
-      link.removeAttr("data-href");
-    });
-
-    // Remove any fade states that may already be applied
-    $(".card-group").removeClass("fadeOut");
-
-    // If the target of the li is not all continue
-    if (target !== "all") {
-      // Fade all cards that don't have matching filter
-      $(".card-group")
-        .not("." + target)
-        .addClass("fadeOut");
-      // For each faded card, move href to data-href and remove href
-      $(".card-group.fadeOut").each(function () {
-        var link = $(this).find("a");
-        link.attr("data-href", $(link).attr("href"));
-        link.removeAttr("href");
-      });
+  // Make sure to show/hide categories as needed
+  $(".category").each(function(){
+    var cards = $(this).find(".card-group:visible");
+    var id = $(this).attr("id");
+    if (!cards.length){
+      $(this).hide();
+      $(".nav-link[href='#"+id+"']").hide()
     }
-}});
+  })
+};
+
 
   // Responsive Tables
   if ($window.width() <= 1099) {
@@ -416,19 +498,30 @@ $("a[data-filter]").on("keypress", function(e) {
     if ($window.width() <= 1099) {
       mobileTable();
     }
+
+    if ($window.width() > 1099) {
+      $("table").each(function (index, value) {
+        $(this).removeClass("mobile");
+      });
+    }
   }));
 
   function mobileTable() {
     $("table").each(function (index, value) {
+      $(this).addClass("mobile");
       var headerCount = $(this).find("thead th").length;
 
       for (i = 0; i <= headerCount; i++) {
-        var headerLabel = $(this)
-          .find("thead th:nth-child(" + i + ")")
-          .text();
+
+        var headerLabel = $(this).find("thead th:nth-child(" + i + ") .mobile-label").text();
+        if (!headerLabel){
+          headerLabel = $(this)
+            .find("thead th:nth-child(" + i + ")")
+            .text();
+        }
 
         $(this)
-          .find("tr td:not([colspan]):nth-child(" + i + ")")
+          .find("tr td:not([colspan],.no-mobile,.header-row):nth-child(" + i + ")")
           .replaceWith(function () {
             return $('<td data-label="' + headerLabel + '">').append(
               $(this).contents()
@@ -477,7 +570,7 @@ $("a[data-filter]").on("keypress", function(e) {
     }
   });
 
-  function activateNavTab(navtabTitle) {
+  function activateNavTab(navtabTitle, skipScroll) {
     // Toggle all nav tabs that match this title
     const text = navtabTitle.text();
     const search = $(".navtab-title").filter(function () {
@@ -491,11 +584,13 @@ $("a[data-filter]").on("keypress", function(e) {
     const screenTop = $(window).scrollTop();
     const screenBottom = $(window).scrollTop() + $(window).innerHeight();
 
-    // If the element isn't on screen, scroll to it
-    if (elementBottom < screenTop || elementTop > screenBottom){
-        $([document.documentElement, document.body]).animate({
-          scrollTop: elementTop - 120
-      }, 0);
+    if (!skipScroll){
+      // If the element isn't on screen, scroll to it
+      if (elementBottom < screenTop || elementTop > screenBottom){
+          $([document.documentElement, document.body]).animate({
+            scrollTop: elementTop - 120
+        }, 0);
+      }
     }
   }
 
@@ -540,6 +635,34 @@ $("a[data-filter]").on("keypress", function(e) {
         activateNavTab(navTab);
       }
     }
+  }
+
+  // Handle EE/OSS Sidebar switcher
+  const ossEeToggle = $("#oss-ee-toggle");
+  if ($(".external-trigger").length){
+    ossEeToggle.show();
+  }
+
+  ossEeToggle.on("click", function(){
+    const t = $(this);
+    const current = t.data('current');
+    let next;
+    let slug;
+    if (current == "Enterprise" || !current){
+      next = "OSS";
+      slug = "kong-gateway-oss";
+    } else {
+      next = "Enterprise";
+      slug = "kong-gateway";
+    }
+    t.data('current', next);
+    t.find("#switch-to-version").text(current);
+
+    activateNavTab($(".navtab-title[data-slug='"+slug+"']").first(), true)
+  });
+
+  if (getParams.install == "oss" && ossEeToggle.is(":visible")) {
+    ossEeToggle.click();
   }
 
 
@@ -636,7 +759,7 @@ $("a[data-filter]").on("keypress", function(e) {
 // Tooltips for badges
 jQuery(function () {
     $('.badge.enterprise')
-      .append( '<div class="tooltip"><span class="tooltiptext">Available with Enterprise subscription</span></div>' );
+      .append( '<div class="tooltip"><span class="tooltiptext">Available with Enterprise subscription - <a target="_blank" href="https://konghq.com/contact-sales">Contact Sales</a></span></div>' );
     $('.badge.plus')
       .append( '<div class="tooltip"><span class="tooltiptext">Available with Plus subscription (Konnect Cloud)</span></div>' );
     $('.badge.free')
@@ -645,4 +768,6 @@ jQuery(function () {
       .append( '<div class="tooltip"><span class="tooltiptext" >Available in Kong open-source only</span></div>' );
     $('.badge.dbless')
       .append( '<div class="tooltip"><span class="tooltiptext">Compatible with DB-less deployments</span></div>' );
+    $('.badge.konnect')
+      .append( '<div class="tooltip"><span class="tooltiptext">Available in the Konnect Cloud app</span></div>' );
 });

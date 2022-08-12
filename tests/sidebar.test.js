@@ -4,7 +4,7 @@ test.describe("Module Switcher", () => {
   test("has the same products, in the same order as the top 'Docs' dropdown", async ({
     page,
   }) => {
-    await page.goto("/gateway/");
+    await page.goto("/gateway/latest/");
 
     async function fetchLinksFromElement(selector) {
       return (
@@ -74,7 +74,7 @@ test.describe("Outdated version documentation", () => {
     await expect(await s.count()).toBe(1);
     await expect(await s.getAttribute("href")).toEqual(
       expect.stringMatching(
-        new RegExp(`^/gateway/${latestGatewayVersion}/install-and-run/rhel/$`)
+        new RegExp(`^/gateway/latest/install-and-run/rhel/$`)
       )
     );
   });
@@ -105,12 +105,12 @@ test.describe("Sidebar section count", () => {
     },
     {
       title: "Gateway Single Sourced",
-      path: "/gateway/",
-      count: 7,
+      path: "/gateway/latest/",
+      count: 8,
     },
     {
       title: "decK",
-      path: "/deck/",
+      path: "/deck/latest/",
       count: 6,
     },
   ].forEach((t) => {
@@ -118,6 +118,45 @@ test.describe("Sidebar section count", () => {
       await page.goto(t.path);
       const s = await page.locator(sidebarSelector);
       await expect(await s.count()).toBe(t.count);
+    });
+  });
+});
+
+test.describe("sidenav versions", () => {
+  [
+    {
+      title: "Root page links to /latest/",
+      src: "/gateway/latest/",
+      link_text: "Docker",
+      expected_url: "/gateway/latest/install-and-run/docker",
+    },
+    {
+      title: "Versioned root page links to the correct version",
+      src: "/gateway/2.7.x",
+      link_text: "Install and Run",
+      expected_url: "/gateway/2.7.x/install-and-run/",
+    },
+    {
+      title: "Sub page links to latest",
+      src: "/gateway/latest/admin-api/",
+      link_text: "Docker",
+      expected_url: "/gateway/latest/install-and-run/docker",
+    },
+    {
+      title: "Versioned sub page links to the correct version",
+      src: "/gateway/2.8.x/admin-api/",
+      link_text: "Docker",
+      expected_url: "/gateway/2.8.x/install-and-run/docker",
+    },
+
+  ].forEach((t) => {
+    test(t.title, async ({ page }) => {
+      await page.goto(t.src);
+      const link = page.locator(
+        `a:text("${t.link_text}")`
+      );
+      const href = await link.getAttribute("href");
+      await expect(href).toEqual(t.expected_url)
     });
   });
 });

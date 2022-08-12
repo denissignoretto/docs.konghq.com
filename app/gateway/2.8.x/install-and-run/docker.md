@@ -2,16 +2,6 @@
 title: Install Kong Gateway on Docker
 ---
 
-<!-- Banner with links to latest downloads -->
-<!-- The install-link and install-listing-link classes are used for tracking, do not remove -->
-
-{:.install-banner}
-> See the list of Docker tags and pull the Docker image:
-> * [**Kong Gateway**](https://hub.docker.com/r/kong/kong-gateway/tags){:.install-listing-link}
-> * [**Kong Gateway (OSS)**](https://hub.docker.com/_/kong){:.install-listing-link}
->
-> (latest {{site.base_gateway}} version: {{page.kong_versions[page.version-index].ee-version}})
-
 {{site.base_gateway}} supports both PostgreSQL 9.5+ and Cassandra 3.11.* as its
 datastore. This guide provides steps to configure PostgreSQL.
 
@@ -26,7 +16,7 @@ find it on [Kong's public Docker Hub page](https://hub.docker.com/r/kong/kong-ga
 [Kong Support](https://support.konghq.com/).
 
 The {{site.base_gateway}} software is governed by the
-[Kong Software License Agreement](https://konghq.com/kongsoftwarelicense/).
+[Kong Software License Agreement](https://konghq.com/kongsoftwarelicense).
 {{site.ce_product_name}} is licensed under an
 [Apache 2.0 license](https://github.com/Kong/kong/blob/master/LICENSE).
 
@@ -87,7 +77,7 @@ communicate with each other:
 1. Prepare the Kong database:
 
 {% capture migrations %}
-{% navtabs codeblock %}
+{% navtabs_ee codeblock %}
 {% navtab Kong Gateway %}
 ```sh
 docker run --rm --network=kong-net \
@@ -107,7 +97,7 @@ docker run --rm --network=kong-net \
 kong:{{page.kong_versions[page.version-index].ce-version}}-alpine kong migrations bootstrap
 ```
 {% endnavtab %}
-{% endnavtabs %}
+{% endnavtabs_ee %}
 {% endcapture %}
 {{ migrations | indent | replace: " </code>", "</code>" }}
 
@@ -147,7 +137,7 @@ export the license key to a variable:
 
 1. Run the following command to start a container with {{site.base_gateway}}:
 {% capture start_container %}
-{% navtabs codeblock %}
+{% navtabs_ee codeblock %}
 {% navtab Kong Gateway %}
 ```sh
 docker run -d --name kong-gateway \
@@ -194,7 +184,7 @@ docker run -d --name kong-gateway \
  kong:{{page.kong_versions[page.version-index].ce-version}}-alpine
  ```
 {% endnavtab %}
-{% endnavtabs %}
+{% endnavtabs_ee %}
 {% endcapture %}
 {{ start_container | indent | replace: " </code>", "</code>" }}
 
@@ -336,7 +326,7 @@ export the license key to a variable:
 run the following command to start a container with {{site.base_gateway}}:
 
 {% capture start_container %}
-{% navtabs codeblock %}
+{% navtabs_ee codeblock %}
 {% navtab Kong Gateway %}
 ```sh
 docker run -d --name kong-dbless \
@@ -381,7 +371,7 @@ docker run -d --name kong-dbless \
  kong:{{page.kong_versions[page.version-index].ce-version}}-alpine
  ```
 {% endnavtab %}
-{% endnavtabs %}
+{% endnavtabs_ee %}
 {% endcapture %}
 {{ start_container | indent | replace: " </code>", "</code>" }}
 

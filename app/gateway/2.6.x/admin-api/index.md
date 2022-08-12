@@ -7,6 +7,7 @@
 #
 title: Admin API
 toc: false
+source_url: https://github.com/Kong/kong/blob/master/autodoc/admin-api/data/admin-api.lua
 
 service_body: |
     Attributes | Description
@@ -677,8 +678,9 @@ HTTP 200 OK
 
 ``` json
 {
-    { "services": [],
-      "routes": []
+    {
+        "services": [],
+        "routes": []
     }
 }
 ```

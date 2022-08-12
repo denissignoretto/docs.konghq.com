@@ -7,7 +7,8 @@ body_id: page-hub
 
 ---
 
-{% assign hub = site.hub %}
+{% assign hub = site.data.ssg_hub %}
+
 {% assign kong_extns = hub | where: "publisher", "Kong Inc." %}
 {% assign third_extns = hub | where_exp: "extn", "extn.publisher != 'Kong Inc.'" %}
 {% assign categories = site.extensions.categories %}
@@ -43,11 +44,16 @@ body_id: page-hub
               </a>
             </li>
             <li class="nav-item">
+              <a class="nav-link" data-filter="konnect-cloud" role="menuitem" tabindex="0">
+                Konnect
+              </a>
+            </li>
+            <li class="nav-item">
               <a class="nav-link" data-filter="pub-not-konghq" role="menuitem" tabindex="0">
                 Third-Party
               </a>
             </li>
-            <p class="no-link">{{site.konnect_short_name}} license tiers</p>
+            <p class="no-link">Subscription tiers</p>
             <li class="nav-item">
               <a class="nav-link" data-filter="open-source" role="menuitem" tabindex="0">
                 Free
